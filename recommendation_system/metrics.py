@@ -1,7 +1,3 @@
-"""
-Módulo de métricas e visualizações para o sistema de recomendação.
-"""
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,7 +7,6 @@ import os
 
 
 def calculate_rmse(recommender, ratings_matrix: pd.DataFrame, test_ratio: float = 0.2, n_users: int = 500) -> dict:
-    """Calcula o RMSE do sistema de recomendação usando hold-out validation."""
     print("\nAvaliando modelo...")
     
     predictions = []
@@ -67,7 +62,6 @@ def calculate_rmse(recommender, ratings_matrix: pd.DataFrame, test_ratio: float 
 
 
 def create_visualizations(recommender, metrics: dict, df: pd.DataFrame, ratings_matrix: pd.DataFrame, output_dir: str):
-    """Cria visualizações e gráficos para análise do sistema de recomendação."""
     os.makedirs(output_dir, exist_ok=True)
     
     predictions = metrics.get('predictions', np.array([]))
@@ -84,7 +78,6 @@ def create_visualizations(recommender, metrics: dict, df: pd.DataFrame, ratings_
 
 
 def _create_confusion_matrix(predictions: np.ndarray, actuals: np.ndarray, output_dir: str):
-    """Cria matriz de confusão categorizando ratings."""
     def categorize(rating):
         if rating <= 2:
             return 'Baixo (1-2)'
@@ -112,7 +105,6 @@ def _create_confusion_matrix(predictions: np.ndarray, actuals: np.ndarray, outpu
 
 
 def _create_prediction_scatter(predictions: np.ndarray, actuals: np.ndarray, metrics: dict, output_dir: str):
-    """Cria scatter plot de predições vs valores reais."""
     fig, ax = plt.subplots(figsize=(10, 8))
     
     ax.scatter(actuals, predictions, alpha=0.3, edgecolors='none', s=30, c='steelblue')
@@ -143,7 +135,6 @@ def _create_prediction_scatter(predictions: np.ndarray, actuals: np.ndarray, met
 
 
 def _create_error_distribution(predictions: np.ndarray, actuals: np.ndarray, output_dir: str):
-    """Cria distribuição dos erros de predição."""
     errors = predictions - actuals
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
@@ -174,7 +165,6 @@ def _create_error_distribution(predictions: np.ndarray, actuals: np.ndarray, out
 
 
 def _create_similarity_heatmap(recommender, output_dir: str):
-    """Cria heatmap da matriz de similaridade."""
     n_sample = min(30, len(recommender.movie_ids))
     
     similarity_variance = recommender.item_similarity.var(axis=1)
@@ -201,7 +191,6 @@ def _create_similarity_heatmap(recommender, output_dir: str):
 
 
 def _create_rating_distribution(df: pd.DataFrame, output_dir: str):
-    """Cria distribuição de ratings no dataset."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     ax1 = axes[0]
@@ -235,7 +224,6 @@ def _create_rating_distribution(df: pd.DataFrame, output_dir: str):
 
 
 def _create_sparsity_analysis(ratings_matrix: pd.DataFrame, output_dir: str):
-    """Analisa e visualiza a esparsidade da matriz."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     ax1 = axes[0]
@@ -268,7 +256,6 @@ def _create_sparsity_analysis(ratings_matrix: pd.DataFrame, output_dir: str):
 
 
 def _create_top_movies_chart(df: pd.DataFrame, output_dir: str):
-    """Cria gráfico dos filmes mais avaliados e melhor avaliados."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     
     ax1 = axes[0]
@@ -311,7 +298,6 @@ def _create_top_movies_chart(df: pd.DataFrame, output_dir: str):
 
 
 def _create_metrics_summary(metrics: dict, output_dir: str):
-    """Cria um resumo visual das métricas."""
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.axis('off')
     
@@ -357,7 +343,6 @@ def _create_metrics_summary(metrics: dict, output_dir: str):
 
 
 def create_dashboard(recommender, metrics: dict, df: pd.DataFrame, output_dir: str):
-    """Cria um dashboard consolidado com as principais métricas."""
     predictions = metrics.get('predictions', np.array([]))
     actuals = metrics.get('actuals', np.array([]))
     errors = predictions - actuals
@@ -459,7 +444,6 @@ def create_dashboard(recommender, metrics: dict, df: pd.DataFrame, output_dir: s
 
 
 def save_results_report(metrics: dict, df, recommender, min_ratings: int, results_dir: str, graphs_dir: str):
-    """Salva relatório de resultados em Markdown."""
     with open(os.path.join(results_dir, 'recommendation_system_results.md'), 'w') as f:
         f.write("# Sistema de Recomendação - Resultados\n\n")
         f.write("## Método: Item-Item Collaborative Filtering\n\n")

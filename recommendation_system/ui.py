@@ -1,15 +1,9 @@
-"""
-Módulo de interface gráfica (Gradio) para o sistema de recomendação.
-"""
-
 import gradio as gr
 
 
 def create_gradio_interface(recommender):
-    """Cria interface Gradio para o sistema de recomendação."""
     
     def search_movies_ui(query: str) -> str:
-        """Busca filmes pelo nome."""
         if not query or len(query) < 2:
             return "Digite pelo menos 2 caracteres para buscar..."
         
@@ -29,7 +23,6 @@ def create_gradio_interface(recommender):
                            movie3: str, rating3: float,
                            movie4: str, rating4: float,
                            movie5: str, rating5: float) -> str:
-        """Gera recomendações baseadas nos filmes informados."""
         user_ratings = {}
         movies_input = [
             (movie1, rating1), (movie2, rating2), (movie3, rating3),
@@ -73,7 +66,6 @@ def create_gradio_interface(recommender):
         return output
     
     def get_similar_movies_ui(movie_id: str) -> str:
-        """Encontra filmes similares."""
         if not movie_id or len(movie_id) < 2:
             return "Digite o ID de um filme..."
         
@@ -171,7 +163,6 @@ def create_gradio_interface(recommender):
 
 
 def run_interface(recommender):
-    """Executa a interface Gradio."""
     print("\nIniciando Interface Web...")
     interface = create_gradio_interface(recommender)
     interface.launch(share=False)

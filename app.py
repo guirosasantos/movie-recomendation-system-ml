@@ -34,9 +34,6 @@ import argparse
 
 warnings.filterwarnings('ignore')
 
-# ============================================================================
-# 1. DATA LOADING AND EXPLORATION
-# ============================================================================
 
 def load_data(filepath: str, sample_size: int = None) -> pd.DataFrame:
     """
@@ -68,21 +65,17 @@ def explore_data(df: pd.DataFrame) -> None:
     print("EXPLORATORY DATA ANALYSIS")
     print("="*60)
     
-    # Basic info
     print(f"\nDataset Shape: {df.shape}")
     print(f"\nColumns: {df.columns.tolist()}")
     
-    # Check for missing values in key columns
     print("\nMissing Values:")
     print(df[['reviewText', 'scoreSentiment']].isnull().sum())
     
-    # Sentiment distribution
     print("\nSentiment Distribution:")
     print(df['scoreSentiment'].value_counts())
     print(f"\nSentiment Percentages:")
     print(df['scoreSentiment'].value_counts(normalize=True) * 100)
     
-    # Review text statistics
     df['text_length'] = df['reviewText'].astype(str).apply(len)
     df['word_count'] = df['reviewText'].astype(str).apply(lambda x: len(x.split()))
     
@@ -99,10 +92,8 @@ def visualize_data(df: pd.DataFrame) -> None:
     """
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    # 1. Sentiment Distribution
     ax1 = axes[0, 0]
-    sentiment_counts = df['scoreSentiment'].value_counts().sort_index()  # Sort to ensure consistent order
-    # Map colors: NEGATIVE = red, POSITIVE = green
+    sentiment_counts = df['scoreSentiment'].value_counts().sort_index()
     color_map = {'NEGATIVE': '#e74c3c', 'POSITIVE': '#2ecc71'}
     colors = [color_map[label] for label in sentiment_counts.index]
     sentiment_counts.plot(kind='bar', ax=ax1, color=colors)
@@ -111,11 +102,9 @@ def visualize_data(df: pd.DataFrame) -> None:
     ax1.set_ylabel('Count')
     ax1.tick_params(axis='x', rotation=0)
     
-    # Add percentage labels
     for i, v in enumerate(sentiment_counts):
         ax1.text(i, v + 1000, f'{v/len(df)*100:.1f}%', ha='center', fontweight='bold')
     
-    # 2. Review Length Distribution by Sentiment
     ax2 = axes[0, 1]
     df['text_length'] = df['reviewText'].astype(str).apply(len)
     df.boxplot(column='text_length', by='scoreSentiment', ax=ax2)
@@ -124,7 +113,6 @@ def visualize_data(df: pd.DataFrame) -> None:
     ax2.set_ylabel('Character Count')
     plt.suptitle('')
     
-    # 3. Word Count Distribution
     ax3 = axes[1, 0]
     df['word_count'] = df['reviewText'].astype(str).apply(lambda x: len(x.split()))
     for sentiment in df['scoreSentiment'].unique():
@@ -136,13 +124,11 @@ def visualize_data(df: pd.DataFrame) -> None:
     ax3.legend()
     ax3.set_xlim(0, 500)
     
-    # 4. Top Critics vs Regular Critics Sentiment
     ax4 = axes[1, 1]
     critic_sentiment = df.groupby(['isTopCritic', 'scoreSentiment']).size().unstack(fill_value=0)
-    # Reorder columns to ensure NEGATIVE first, then POSITIVE for consistent coloring
     if 'NEGATIVE' in critic_sentiment.columns and 'POSITIVE' in critic_sentiment.columns:
         critic_sentiment = critic_sentiment[['NEGATIVE', 'POSITIVE']]
-    critic_colors = ['#e74c3c', '#2ecc71']  # Red for NEGATIVE, Green for POSITIVE
+    critic_colors = ['#e74c3c', '#2ecc71']
     critic_sentiment.plot(kind='bar', ax=ax4, color=critic_colors)
     ax4.set_title('Sentiment by Critic Type', fontsize=14, fontweight='bold')
     ax4.set_xlabel('Is Top Critic')
@@ -155,10 +141,6 @@ def visualize_data(df: pd.DataFrame) -> None:
     plt.show()
     print("\nVisualization saved to 'data/sentiment_analysis_eda.png'")
 
-
-# ============================================================================
-# 2. TEXT PREPROCESSING
-# ============================================================================
 
 def clean_text(text: str) -> str:
     """
@@ -174,20 +156,10 @@ def clean_text(text: str) -> str:
         return ""
     
     text = str(text)
-    
-    # Convert to lowercase
     text = text.lower()
-    
-    # Remove URLs
     text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
-    
-    # Remove HTML tags
     text = re.sub(r'<.*?>', '', text)
-    
-    # Remove punctuation (keep some for sentiment like ! and ?)
     text = re.sub(r'[^\w\s!?]', ' ', text)
-    
-    # Remove extra whitespace
     text = re.sub(r'\s+', ' ', text).strip()
     
     return text
@@ -205,20 +177,12 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     print("\nPreprocessing data...")
     
-    # Remove rows with missing review text or sentiment
     df_clean = df.dropna(subset=['reviewText', 'scoreSentiment']).copy()
     print(f"  Removed {len(df) - len(df_clean):,} rows with missing values")
     
-    # Keep only POSITIVE and NEGATIVE sentiments
     df_clean = df_clean[df_clean['scoreSentiment'].isin(['POSITIVE', 'NEGATIVE'])]
-    
-    # Clean the review text
     df_clean['cleaned_text'] = df_clean['reviewText'].apply(clean_text)
-    
-    # Remove empty texts after cleaning
     df_clean = df_clean[df_clean['cleaned_text'].str.len() > 0]
-    
-    # Create binary labels (1 = POSITIVE, 0 = NEGATIVE)
     df_clean['sentiment_label'] = (df_clean['scoreSentiment'] == 'POSITIVE').astype(int)
     
     print(f"  Final dataset size: {len(df_clean):,} reviews")
@@ -227,10 +191,6 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     
     return df_clean
 
-
-# ============================================================================
-# 3. MODEL TRAINING
-# ============================================================================
 
 def create_models() -> dict:
     """
@@ -275,7 +235,7 @@ def create_models() -> dict:
         
         'Random Forest': Pipeline([
             ('tfidf', TfidfVectorizer(
-                max_features=5000,  # Reduced for RF
+                max_features=5000,
                 ngram_range=(1, 2),
                 min_df=5,
                 max_df=0.95,
@@ -319,13 +279,9 @@ def train_and_evaluate(
     for name, model in models.items():
         print(f"\nTraining {name}...")
         
-        # Train the model
         model.fit(X_train, y_train)
-        
-        # Make predictions
         y_pred = model.predict(X_test)
         
-        # Calculate metrics
         accuracy = accuracy_score(y_test, y_pred)
         precision = precision_score(y_test, y_pred)
         recall = recall_score(y_test, y_pred)
@@ -354,7 +310,6 @@ def plot_results(results: dict, y_test: pd.Series) -> None:
     """
     fig, axes = plt.subplots(2, 2, figsize=(14, 12))
     
-    # 1. Model Comparison Bar Chart
     ax1 = axes[0, 0]
     metrics = ['accuracy', 'precision', 'recall', 'f1']
     x = np.arange(len(results))
@@ -373,7 +328,6 @@ def plot_results(results: dict, y_test: pd.Series) -> None:
     ax1.set_ylim(0.5, 1.0)
     ax1.axhline(y=0.8, color='gray', linestyle='--', alpha=0.5)
     
-    # 2. Confusion Matrices for best model
     best_model_name = max(results, key=lambda x: results[x]['f1'])
     ax2 = axes[0, 1]
     cm = confusion_matrix(y_test, results[best_model_name]['y_pred'])
@@ -384,7 +338,6 @@ def plot_results(results: dict, y_test: pd.Series) -> None:
     ax2.set_xlabel('Predicted')
     ax2.set_ylabel('Actual')
     
-    # 3. F1 Score Comparison
     ax3 = axes[1, 0]
     f1_scores = {name: results[name]['f1'] for name in results}
     colors = plt.cm.RdYlGn(np.linspace(0.3, 0.9, len(f1_scores)))
@@ -397,12 +350,10 @@ def plot_results(results: dict, y_test: pd.Series) -> None:
         ax3.text(score + 0.01, bar.get_y() + bar.get_height()/2, 
                 f'{score:.4f}', va='center', fontweight='bold')
     
-    # 4. Accuracy vs Training Time (simulated as accuracy ranking)
     ax4 = axes[1, 1]
     model_names = list(results.keys())
     accuracies = [results[name]['accuracy'] for name in model_names]
     
-    # Create scatter plot
     scatter = ax4.scatter(range(len(model_names)), accuracies, 
                          s=200, c=accuracies, cmap='RdYlGn', 
                          vmin=0.7, vmax=1.0, edgecolors='black')
@@ -437,10 +388,6 @@ def print_classification_reports(results: dict, y_test: pd.Series) -> None:
         ))
 
 
-# ============================================================================
-# 4. FEATURE IMPORTANCE & INTERPRETATION
-# ============================================================================
-
 def show_feature_importance(results: dict, top_n: int = 20) -> None:
     """
     Show the most important features (words) for sentiment prediction.
@@ -449,7 +396,6 @@ def show_feature_importance(results: dict, top_n: int = 20) -> None:
     print("TOP FEATURES FOR SENTIMENT PREDICTION")
     print("="*60)
     
-    # Use Logistic Regression for interpretability
     if 'Logistic Regression' in results:
         model = results['Logistic Regression']['model']
         vectorizer = model.named_steps['tfidf']
@@ -458,7 +404,6 @@ def show_feature_importance(results: dict, top_n: int = 20) -> None:
         feature_names = vectorizer.get_feature_names_out()
         coefficients = classifier.coef_[0]
         
-        # Get top positive and negative features
         top_positive_idx = np.argsort(coefficients)[-top_n:][::-1]
         top_negative_idx = np.argsort(coefficients)[:top_n]
         
@@ -472,10 +417,8 @@ def show_feature_importance(results: dict, top_n: int = 20) -> None:
         for idx in top_negative_idx:
             print(f"  {feature_names[idx]:20} (coef: {coefficients[idx]:.4f})")
         
-        # Visualize
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         
-        # Positive features
         ax1 = axes[0]
         pos_words = [feature_names[i] for i in top_positive_idx[:10]]
         pos_coefs = [coefficients[i] for i in top_positive_idx[:10]]
@@ -483,7 +426,6 @@ def show_feature_importance(results: dict, top_n: int = 20) -> None:
         ax1.set_xlabel('Coefficient')
         ax1.set_title('Top Words for POSITIVE Sentiment', fontsize=14, fontweight='bold')
         
-        # Negative features
         ax2 = axes[1]
         neg_words = [feature_names[i] for i in top_negative_idx[:10]]
         neg_coefs = [coefficients[i] for i in top_negative_idx[:10]]
@@ -496,10 +438,6 @@ def show_feature_importance(results: dict, top_n: int = 20) -> None:
         plt.show()
         print("\nFeature importance saved to 'data/feature_importance.png'")
 
-
-# ============================================================================
-# 5. PREDICTION FUNCTION
-# ============================================================================
 
 def predict_sentiment(model, text: str) -> dict:
     """
@@ -515,7 +453,6 @@ def predict_sentiment(model, text: str) -> dict:
     cleaned = clean_text(text)
     prediction = model.predict([cleaned])[0]
     
-    # Get probability if available
     if hasattr(model.named_steps['clf'], 'predict_proba'):
         proba = model.predict_proba([cleaned])[0]
         confidence = max(proba)
@@ -570,10 +507,6 @@ def save_best_model(results: dict, filepath: str = 'data/best_model.joblib') -> 
     print(f"  F1 Score: {results[best_model_name]['f1']:.4f}")
 
 
-# ============================================================================
-# MAIN EXECUTION
-# ============================================================================
-
 def main():
     """
     Main function to run the complete sentiment analysis pipeline.
@@ -582,28 +515,21 @@ def main():
     print("MOVIE REVIEW SENTIMENT ANALYSIS")
     print("="*60)
     
-    # Configuration
     DATA_PATH = 'data/dataset.csv'
-    SAMPLE_SIZE = 100000  # Use None for full dataset (will be slower)
+    SAMPLE_SIZE = 100000
     TEST_SIZE = 0.2
     RANDOM_STATE = 42
     
-    # 1. Load data
     df = load_data(DATA_PATH, sample_size=SAMPLE_SIZE)
-    
-    # 2. Explore data
     explore_data(df)
     
-    # 3. Visualize data
     try:
         visualize_data(df)
     except Exception as e:
         print(f"Visualization skipped: {e}")
     
-    # 4. Preprocess data
     df_clean = preprocess_data(df)
     
-    # 5. Split data
     print("\nSplitting data...")
     X_train, X_test, y_train, y_test = train_test_split(
         df_clean['cleaned_text'],
@@ -615,33 +541,26 @@ def main():
     print(f"  Training set: {len(X_train):,} samples")
     print(f"  Test set: {len(X_test):,} samples")
     
-    # 6. Create and train models
     models = create_models()
     results = train_and_evaluate(X_train, X_test, y_train, y_test, models)
     
-    # 7. Plot results
     try:
         plot_results(results, y_test)
     except Exception as e:
         print(f"Plotting skipped: {e}")
     
-    # 8. Print classification reports
     print_classification_reports(results, y_test)
     
-    # 9. Show feature importance
     try:
         show_feature_importance(results)
     except Exception as e:
         print(f"Feature importance skipped: {e}")
     
-    # 10. Interactive demo
     best_model_name = max(results, key=lambda x: results[x]['f1'])
     interactive_demo(results[best_model_name]['model'])
     
-    # 11. Save best model
     save_best_model(results)
     
-    # Summary
     print("\n" + "="*60)
     print("SUMMARY")
     print("="*60)
@@ -655,10 +574,6 @@ def main():
     return results
 
 
-# ============================================================================
-# 6. INTERACTIVE UI MODE
-# ============================================================================
-
 def run_interactive_ui():
     """
     Launch an interactive Gradio UI for sentiment prediction.
@@ -671,7 +586,6 @@ def run_interactive_ui():
         subprocess.check_call(['pip', 'install', 'gradio'])
         import gradio as gr
     
-    # Load the saved model
     model_path = 'data/best_model.joblib'
     try:
         model = joblib.load(model_path)
@@ -688,24 +602,20 @@ def run_interactive_ui():
         if not review_text or not review_text.strip():
             return "Please enter a review text.", "", None
         
-        # Clean and predict
         cleaned = clean_text(review_text)
         prediction = model.predict([cleaned])[0]
         
-        # Get probability if available
         if hasattr(model.named_steps['clf'], 'predict_proba'):
             proba = model.predict_proba([cleaned])[0]
             neg_prob = proba[0]
             pos_prob = proba[1]
         else:
-            # For models without predict_proba (like LinearSVC)
             neg_prob = 1.0 if prediction == 0 else 0.0
             pos_prob = 1.0 if prediction == 1 else 0.0
         
         sentiment = "POSITIVE ✅" if prediction == 1 else "NEGATIVE ❌"
         confidence = max(pos_prob, neg_prob)
         
-        # Create detailed result
         result_text = f"""## Prediction: {sentiment}
 
 **Confidence:** {confidence:.1%}
@@ -715,7 +625,6 @@ def run_interactive_ui():
 - 🔴 Negative: {neg_prob:.1%}
 """
         
-        # Create confidence bar data
         confidence_data = {
             "POSITIVE 🟢": pos_prob,
             "NEGATIVE 🔴": neg_prob
@@ -723,7 +632,6 @@ def run_interactive_ui():
         
         return result_text, confidence_data
     
-    # Example reviews for users to try
     examples = [
         ["This movie was absolutely fantastic! The acting was superb and the story kept me engaged throughout."],
         ["Terrible film. Waste of time and money. The plot made no sense and the acting was wooden."],
@@ -735,7 +643,6 @@ def run_interactive_ui():
         ["Disappointing sequel that fails to capture the magic of the original."]
     ]
     
-    # Create the Gradio interface
     with gr.Blocks(title="Movie Review Sentiment Analyzer") as demo:
         gr.Markdown("""
         # 🎬 Movie Review Sentiment Analyzer
@@ -774,7 +681,6 @@ def run_interactive_ui():
             cache_examples=False
         )
         
-        # Event handlers
         analyze_btn.click(
             fn=analyze_sentiment,
             inputs=review_input,
@@ -801,7 +707,6 @@ def run_interactive_ui():
         - **Performance:** ~85% F1-Score on test data
         """)
     
-    # Launch the interface
     print("\n" + "="*60)
     print("LAUNCHING INTERACTIVE UI")
     print("="*60)
@@ -826,7 +731,6 @@ if __name__ == "__main__":
     elif args.mode == 'ui':
         run_interactive_ui()
     elif args.mode == 'demo':
-        # Load model and run interactive demo
         try:
             model = joblib.load('data/best_model.joblib')
             interactive_demo(model)

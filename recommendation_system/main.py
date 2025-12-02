@@ -1,7 +1,3 @@
-"""
-Sistema de Recomendação de Filmes - Item-Item Collaborative Filtering
-"""
-
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -17,7 +13,6 @@ MODEL_FILENAME = 'recommender_model.joblib'
 
 
 def load_data(filepath: str) -> pd.DataFrame:
-    """Carrega o dataset de reviews de filmes do Rotten Tomatoes."""
     print("Carregando dataset...")
     df = pd.read_csv(filepath)
     print(f"Dataset carregado: {len(df):,} reviews")
@@ -25,7 +20,6 @@ def load_data(filepath: str) -> pd.DataFrame:
 
 
 def standardize_score(score_str: str) -> float:
-    """Padroniza os scores para uma escala de 0 a 5."""
     if pd.isna(score_str):
         return np.nan
     
@@ -73,7 +67,6 @@ def standardize_score(score_str: str) -> float:
 
 
 def create_rating_from_data(row: pd.Series) -> float:
-    """Cria um rating numérico a partir do score original ou do sentimento."""
     parsed_score = standardize_score(row.get('originalScore'))
     
     if not pd.isna(parsed_score):
@@ -91,7 +84,6 @@ def create_rating_from_data(row: pd.Series) -> float:
 
 
 def preprocess_data(df: pd.DataFrame, min_user_ratings: int = 10, min_movie_ratings: int = 10) -> pd.DataFrame:
-    """Pré-processa os dados para o sistema de recomendação."""
     print("\nPré-processando dados...")
     
     df = df.copy()
@@ -120,7 +112,6 @@ def preprocess_data(df: pd.DataFrame, min_user_ratings: int = 10, min_movie_rati
 
 
 def create_ratings_matrix(df: pd.DataFrame) -> pd.DataFrame:
-    """Cria a matriz de ratings (usuários x filmes)."""
     ratings_matrix = df.pivot_table(
         index='criticName',
         columns='id',
@@ -131,10 +122,8 @@ def create_ratings_matrix(df: pd.DataFrame) -> pd.DataFrame:
 
 
 class ItemItemRecommender:
-    """Sistema de Recomendação Item-Item Collaborative Filtering."""
     
     def __init__(self, min_ratings: int = 5, k_neighbors: int = 30):
-        """Inicializa o recomendador."""
         self.min_ratings = min_ratings
         self.k_neighbors = k_neighbors
         self.ratings_matrix = None
@@ -147,7 +136,6 @@ class ItemItemRecommender:
         self.item_bias = None
         
     def fit(self, ratings_matrix: pd.DataFrame):
-        """Treina o modelo com a matriz de ratings."""
         print("\nTreinando modelo...")
         
         movie_rating_counts = ratings_matrix.notna().sum()
@@ -193,7 +181,6 @@ class ItemItemRecommender:
         return self
     
     def get_similar_movies(self, movie_id: str, n: int = 10) -> pd.DataFrame:
-        """Encontra os filmes mais similares a um filme dado."""
         if movie_id not in self.item_similarity.index:
             matches = [m for m in self.movie_ids if movie_id.lower() in m.lower()]
             if matches:
@@ -213,7 +200,6 @@ class ItemItemRecommender:
         return result
     
     def predict_rating(self, user_ratings: dict, movie_id: str, user_id: str = None) -> float:
-        """Prediz o rating de um usuário para um filme usando k-NN com ajuste de bias."""
         if movie_id not in self.item_similarity.index:
             return np.nan
         
@@ -251,7 +237,6 @@ class ItemItemRecommender:
         return np.clip(prediction, 1, 5)
     
     def recommend_for_user(self, user_ratings: dict, n: int = 10) -> pd.DataFrame:
-        """Recomenda filmes para um usuário baseado nos seus ratings."""
         predictions = {}
         
         for movie_id in self.movie_ids:
@@ -274,7 +259,6 @@ class ItemItemRecommender:
         return result
     
     def search_movies(self, query: str, limit: int = 20) -> list:
-        """Busca filmes pelo nome."""
         query_lower = query.lower()
         results = []
         
@@ -286,7 +270,6 @@ class ItemItemRecommender:
         return results[:limit]
     
     def save(self, filepath: str):
-        """Salva o modelo treinado em disco."""
         model_data = {
             'min_ratings': self.min_ratings,
             'k_neighbors': self.k_neighbors,
@@ -305,7 +288,6 @@ class ItemItemRecommender:
     
     @classmethod
     def load(cls, filepath: str) -> 'ItemItemRecommender':
-        """Carrega um modelo salvo do disco."""
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Modelo não encontrado: {filepath}")
         
@@ -333,7 +315,6 @@ class ItemItemRecommender:
 
 
 def get_model_path():
-    """Retorna o caminho do arquivo do modelo."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
     data_dir = os.path.join(project_root, 'data')
@@ -342,7 +323,6 @@ def get_model_path():
 
 
 def train_model(save_model: bool = False):
-    """Carrega dados e treina o modelo."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
     DATA_PATH = os.path.join(project_root, 'rotten_tomatoes_movie_reviews.csv')
@@ -373,7 +353,6 @@ def train_model(save_model: bool = False):
 
 
 def load_saved_model():
-    """Carrega o modelo salvo do disco."""
     model_path = get_model_path()
     
     print("Sistema de Recomendação de Filmes")
@@ -388,7 +367,6 @@ def load_saved_model():
 
 
 def main(use_saved: bool = False, save_after: bool = False):
-    """Função principal para executar o sistema com métricas."""
     from metrics import calculate_rmse, create_visualizations, create_dashboard, save_results_report
     
     if use_saved:
@@ -428,7 +406,6 @@ def main(use_saved: bool = False, save_after: bool = False):
 
 
 def run_ui(use_saved: bool = False, save_after: bool = False):
-    """Executa a interface Gradio."""
     from ui import run_interface
     
     if use_saved:
